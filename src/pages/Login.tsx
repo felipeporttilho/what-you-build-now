@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,8 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [nome, setNome] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,17 +23,34 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      if (isRegistering) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              nome: nome
+            }
+          }
+        });
 
-      if (error) throw error;
-      
-      toast.success("Login realizado com sucesso!");
-      navigate("/");
+        if (error) throw error;
+        
+        toast.success("Cadastro realizado com sucesso! Verifique seu email.");
+        setIsRegistering(false);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+        
+        toast.success("Login realizado com sucesso!");
+        navigate("/");
+      }
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      toast.error(error.message || "Erro ao realizar operação");
     } finally {
       setIsLoading(false);
     }
@@ -57,12 +76,29 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Bem-vindo de volta
+            {isRegistering ? "Criar uma conta" : "Bem-vindo de volta"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isRegistering && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      placeholder="Seu nome completo"
+                      type="text"
+                      className="pl-9"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      required={isRegistering}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -106,7 +142,10 @@ export default function Login() {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Entrando..." : "Entrar"}
+                {isLoading 
+                  ? isRegistering ? "Cadastrando..." : "Entrando..." 
+                  : isRegistering ? "Cadastrar" : "Entrar"
+                }
               </Button>
             </form>
             
@@ -147,6 +186,19 @@ export default function Login() {
               </svg>
               Entrar com Google
             </Button>
+
+            <div className="text-center">
+              <Button
+                variant="link"
+                type="button"
+                onClick={() => setIsRegistering(!isRegistering)}
+                className="text-sm"
+              >
+                {isRegistering
+                  ? "Já tem uma conta? Faça login"
+                  : "Não tem uma conta? Cadastre-se"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
