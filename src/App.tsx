@@ -19,14 +19,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Chat />
-                </PrivateRoute>
-              }
-            />
+          <Route path="/" element={<Chat />} />
             <Route path="/login" element={<Login />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

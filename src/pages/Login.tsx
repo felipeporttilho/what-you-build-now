@@ -47,7 +47,7 @@ export default function Login() {
         if (error) throw error;
         
         toast.success("Login realizado com sucesso!");
-        navigate("/chat");
+        navigate("/");
       }
     } catch (error: any) {
       toast.error(error.message || "Erro ao realizar operação");
