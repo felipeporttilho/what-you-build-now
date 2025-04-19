@@ -1,3 +1,5 @@
+// src/pages/Chat.tsx
+
 import { useEffect, useRef, useState } from "react";
 
 interface Message {
@@ -8,92 +10,65 @@ interface Message {
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const conversationIdRef = useRef<string>("14241f6bc4");
 
-  // Rolar para a última mensagem sempre que a lista de mensagens ou o indicador de digitação mudar
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  };
 
-  // Focar o campo de input quando reabilitado ou ao montar o componente
   useEffect(() => {
-    if (!isTyping) {
-      inputRef.current?.focus();
-    }
-  }, [isTyping]);
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async () => {
-    const message = input.trim();
-    if (!message) return;
+    if (!input.trim()) return;
+
+    const userMessage: Message = { sender: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+
     try {
-      // Desabilitar input e botão (e mostrar indicador de digitação via estado)
-      setIsTyping(true);
-
-      // Adicionar mensagem do usuário ao chat
-      const userMessage: Message = { sender: "user", text: message };
-      setMessages((prev) => [...prev, userMessage]);
-
-      // Limpar campo de input
-      setInput("");
-
-      console.log("Enviando mensagem:", message);
-      console.log("ID da conversa:", conversationIdRef.current);
-
-      // Enviar mensagem e esperar resposta da Cloud Function
       const response = await fetch(
         "https://us-central1-lucidaservice-bd03c.cloudfunctions.net/chatWithLucida",
         {
           method: "POST",
-          mode: "cors",
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
           },
           body: JSON.stringify({
-            message: message,
-            conversation_id: conversationIdRef.current,
+            message: input,
           }),
         }
       );
 
-      console.log("Status da resposta:", response.status);
-      const data: { answer?: string; conversation_id?: string } = await response.json();
-
       if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} - ${JSON.stringify(data)}`);
+        throw new Error("Erro ao obter resposta da IA");
       }
 
-      // Atualizar conversation_id se for retornado
-      if (data.conversation_id) {
-        conversationIdRef.current = data.conversation_id;
-      }
+      const data = await response.json();
 
-      // Remover indicador de digitação
-      setIsTyping(false);
-
-      // Adicionar resposta do bot ao chat
-      if (data.answer) {
-        const botMessage: Message = { sender: "lucida", text: data.answer };
-        setMessages((prev) => [...prev, botMessage]);
-      }
-    } catch (error) {
-      console.error("Erro:", error);
-      // Remover indicador de digitação e exibir mensagem de erro
-      setIsTyping(false);
-      const errorMessage: Message = {
+      const lucidaMessage: Message = {
         sender: "lucida",
-        text: "Desculpe, ocorreu um erro ao processar sua mensagem.",
+        text: data.answer || "Desculpe, não entendi a resposta.",
       };
-      setMessages((prev) => [...prev, errorMessage]);
+
+      setMessages((prev) => [...prev, lucidaMessage]);
+    } catch (error) {
+      console.error("Erro ao enviar mensagem:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "lucida",
+          text:
+            "Erro na comunicação com a LÚCIDA. Verifique sua conexão ou tente novamente mais tarde.",
+        },
+      ]);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
       sendMessage();
     }
   };
@@ -104,37 +79,29 @@ export default function Chat() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`mb-2 p-2 rounded ${
+            className={`mb-2 p-2 rounded max-w-xl ${
               msg.sender === "user"
-                ? "bg-blue-200 self-end text-right"
-                : "bg-gray-300 self-start text-left"
+                ? "bg-blue-500 text-white ml-auto"
+                : "bg-gray-300 text-black mr-auto"
             }`}
           >
             {msg.text}
           </div>
         ))}
-        {isTyping && (
-          <div className="mb-2 p-2 rounded bg-gray-300 self-start text-left">
-            Digitando...
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
       <div className="p-4 border-t bg-white flex">
-        <textarea
-          ref={inputRef}
-          className="flex-1 p-2 border rounded-l resize-none"
+        <input
+          className="flex-1 p-2 border rounded-l"
+          type="text"
           placeholder="Digite sua mensagem..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isTyping}
-          rows={1}
         />
         <button
           onClick={sendMessage}
-          className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600"
-          disabled={isTyping}
+          className="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700"
         >
           Enviar
         </button>
