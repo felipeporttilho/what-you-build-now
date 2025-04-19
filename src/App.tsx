@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 
-import Chat       from "@/pages/Chat";
+import Chat       from "@/pages/chat";
 import Login      from "@/pages/Login";
 import Index      from "@/pages/Index";
 import NotFound   from "@/pages/NotFound";
