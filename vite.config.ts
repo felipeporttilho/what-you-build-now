@@ -1,22 +1,22 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import { defineConfig } from "vite"
+import path from "path"
+import react from "@vitejs/plugin-react"
+import tsconfigPaths from "vite-tsconfig-paths" // opcional, mas recomendado se usar paths no tsconfig
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
+export default defineConfig({
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+    tsconfigPaths() // <-- isso ajuda a reconhecer os aliases do tsconfig.json
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@components": path.resolve(__dirname, "./src/components"),
+      "@lib": path.resolve(__dirname, "./src/lib"),
+      "@hooks": path.resolve(__dirname, "./src/hooks"),
     },
   },
-}));
+  build: {
+    outDir: "dist", // <-- obrigatório para o Firebase
+  },
+})
