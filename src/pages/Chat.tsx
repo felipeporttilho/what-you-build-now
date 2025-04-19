@@ -34,6 +34,7 @@ export default function Chat() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Accept": "application/json",
           },
           body: JSON.stringify({
             message: input,
@@ -41,21 +42,28 @@ export default function Chat() {
         }
       );
 
+      if (!response.ok) {
+        throw new Error("Erro ao obter resposta da IA");
+      }
+
       const data = await response.json();
 
       const lucidaMessage: Message = {
         sender: "lucida",
-        text: data.answer || "Desculpe, não entendi.",
+        text: data.answer || "Desculpe, não entendi a resposta.",
       };
 
       setMessages((prev) => [...prev, lucidaMessage]);
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
-      const errorMessage: Message = {
-        sender: "lucida",
-        text: "Houve um erro ao se comunicar com a Lucida.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "lucida",
+          text:
+            "Erro na comunicação com a LÚCIDA. Verifique sua conexão ou tente novamente mais tarde.",
+        },
+      ]);
     }
   };
 
@@ -71,10 +79,10 @@ export default function Chat() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`mb-2 p-2 rounded ${
+            className={`mb-2 p-2 rounded max-w-xl ${
               msg.sender === "user"
-                ? "bg-blue-200 self-end text-right"
-                : "bg-gray-300 self-start text-left"
+                ? "bg-blue-500 text-white ml-auto"
+                : "bg-gray-300 text-black mr-auto"
             }`}
           >
             {msg.text}
@@ -93,7 +101,7 @@ export default function Chat() {
         />
         <button
           onClick={sendMessage}
-          className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600"
+          className="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700"
         >
           Enviar
         </button>
