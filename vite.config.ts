@@ -1,22 +1,40 @@
-import { defineConfig } from "vite"
-import path from "path"
-import react from "@vitejs/plugin-react"
-import tsconfigPaths from "vite-tsconfig-paths" // opcional, mas recomendado se usar paths no tsconfig
+// vite.config.ts  — colado na raiz do repo
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tsconfigPaths() // <-- isso ajuda a reconhecer os aliases do tsconfig.json
-  ],
+  plugins: [react()],
+
+  /**
+   *  Resolve permite usar “@/…” em vez de caminhos relativos (../../)
+   */
   resolve: {
     alias: {
+      // atalho genérico para qualquer coisa dentro de src
       "@": path.resolve(__dirname, "./src"),
+
+      // atalhos específicos (opcional, mas ajuda no autocomplete)
       "@components": path.resolve(__dirname, "./src/components"),
-      "@lib": path.resolve(__dirname, "./src/lib"),
       "@hooks": path.resolve(__dirname, "./src/hooks"),
+      "@lib": path.resolve(__dirname, "./src/lib"),
+      "@integrations": path.resolve(__dirname, "./src/integrations"),
     },
   },
+
+  /**
+   *  Config de build (o Firebase vai ler exatamente essa pasta)
+   */
   build: {
-    outDir: "dist", // <-- obrigatório para o Firebase
+    outDir: "dist",      // <‑‑ nome da pasta que o Firebase Hosting usa
+    emptyOutDir: true,   // limpa dist antes de cada build
   },
-})
+
+  /**
+   *  Só conveniência para rodar localmente
+   */
+  server: {
+    port: 5173,
+    open: true,
+  },
+});
