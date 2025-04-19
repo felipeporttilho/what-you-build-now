@@ -1,87 +1,103 @@
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ChatHeader } from "@/components/ChatHeader";
-import { ChatMessage } from "@/components/ChatMessage";
-import { Send } from "lucide-react";
+// src/pages/Chat.tsx
+
+import { useEffect, useRef, useState } from "react";
+
+interface Message {
+  sender: "user" | "lucida";
+  text: string;
+}
 
 export default function Chat() {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    { text: "Olá! Como posso te ajudar hoje?", isUser: false }
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    // Adiciona a mensagem do usuário ao chat
-    const userMessage = { text: message, isUser: true };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const userMessage: Message = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
-    setMessage("");
-    setLoading(true);
+    setInput("");
 
     try {
-      const res = await fetch("/api/chatWithLucida", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
+      const response = await fetch(
+        "https://us-central1-lucidaservice-bd03c.cloudfunctions.net/chatWithLucida",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: input,
+          }),
+        }
+      );
 
-      const data = await res.json();
+      const data = await response.json();
 
-      const aiMessage = {
-        text: data.answer || "Desculpe, não consegui entender...",
-        isUser: false
+      const lucidaMessage: Message = {
+        sender: "lucida",
+        text: data.answer || "Desculpe, não entendi.",
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, lucidaMessage]);
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { text: "Erro ao se comunicar com a Lúcida. 😓", isUser: false }
-      ]);
-    } finally {
-      setLoading(false);
+      console.error("Erro ao enviar mensagem:", error);
+      const errorMessage: Message = {
+        sender: "lucida",
+        text: "Houve um erro ao se comunicar com a Lucida.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      sendMessage();
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      <ChatHeader />
-
-      <main className="flex-1 flex flex-col items-center p-4">
-        <div className="w-full max-w-3xl text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-500 mb-2">
-            Converse com a Lúcida
-          </h1>
-        </div>
-
-        <div className="w-full max-w-3xl flex-1 overflow-y-auto space-y-4 mb-4">
-          {messages.map((msg, index) => (
-            <ChatMessage key={index} message={msg.text} isUser={msg.isUser} />
-          ))}
-        </div>
-
-        <form
-          onSubmit={handleSendMessage}
-          className="w-full max-w-3xl flex gap-2"
+    <div className="flex flex-col h-screen bg-gray-100">
+      <div className="flex-1 overflow-auto p-4">
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`mb-2 p-2 rounded ${
+              msg.sender === "user"
+                ? "bg-blue-200 self-end text-right"
+                : "bg-gray-300 self-start text-left"
+            }`}
+          >
+            {msg.text}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="p-4 border-t bg-white flex">
+        <input
+          className="flex-1 p-2 border rounded-l"
+          type="text"
+          placeholder="Digite sua mensagem..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <button
+          onClick={sendMessage}
+          className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600"
         >
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={
-              loading ? "A Lúcida está respondendo..." : "Digite sua mensagem..."
-            }
-            disabled={loading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </main>
+          Enviar
+        </button>
+      </div>
     </div>
   );
 }
